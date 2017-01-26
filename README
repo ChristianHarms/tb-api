@@ -1,0 +1,20 @@
+
+-- local development
+
+../google-cloud-sdk/bin/dev_appserver.py .
+
+-->
+
+Local Start: http://localhost:8000
+
+local console: http://localhost:8080
+
+- global publish
+
+PUSH: ../gcloud/google-cloud-sdk/bin/gcloud app deploy
+
+Global Console: https://console.cloud.google.com/
+
+Aber: Datenstrukturen / Indexe werden nicht automatisch angelegt:
+
+gcloud preview datastore create-indexes

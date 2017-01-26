@@ -1,0 +1,185 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+        <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+        <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+        <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+        <![endif]-->        <!-- Latest compiled and minified JavaScript -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    </head>
+    <body>
+        <div class="page-header black">
+            <div class="container">
+                <h1>Arbeitszeiten</h1>
+                Hallo {{ username }} - hier werden alle deinen geofency Einträge gespeichert.
+            </div>
+        </div>
+
+        {% if msg %}
+        <div class="alert alert-danger" role="alert">
+            {{ msg }}
+        </div>
+        {% endif %}
+
+        <div class="row container">
+            <div class="col-md-6">
+                <ul class="nav nav-tabs">
+                    <li class="active"><a data-toggle="tab" href="#home">Start</a></li>
+                    <li><a data-toggle="tab" href="#times">Arbeitszeiten</a></li>
+                    <li><a data-toggle="tab" href="#form">Von Hand testen</a></li>
+                    <li><a data-toggle="tab" id="config-tab" href="#config">Configuration</a></li>
+                </ul>
+
+                <div class="tab-content">
+
+                    <div id="home" class="tab-pane fade in active">
+                      <h2>Übersicht</h2>
+                        <ul class="list-group">
+                            <li class="list-group-item">
+                                Du hast {% trans count=registered_devices%}eine registrierte
+                                {% pluralize %}{{ registered_devices}} registrierte
+                                {% endtrans %} und
+                                {% trans count=unregistered_devices%}eine unregistrierte App
+                                {% pluralize %}{{ unregistered_devices}} unregistrierte Apps
+                                {% endtrans %}.
+
+                                {% if unregistered_devices>0 %}
+                                <div class="alert alert-danger" role="alert">
+                                    Willst du unbekannte Apps <a onClick="$('#config-tab').tab('show')" href="#config">blockieren</a>?
+                                </div>
+                                {% endif %}
+                            </li>
+                            <li class="list-group-item">
+                                {% if geofency %}
+                                Du hast seit {{ geofency[0].event }}
+                                {% trans count=geofency|length %}einen Eintrag
+                                {% pluralize %}{{ registered_devices}}Einträge
+                                {% endtrans %} offen.
+                                {% else %}
+                                <div class="alert alert-danger" role="alert">
+                                    Du hast keine Geofency Einträge - ist deine App <a onClick="$('#config-tab').tab('show')" href="#config">registriert</a>?
+                                </div>
+                                {% endif %}
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div id="times" class="tab-pane fade">
+                        {% if timings %}
+                        <div class="alert alert-danger" role="alert">
+                            Arbeitszeiten über Nacht werden nicht berechnet, wenn du
+                            <a onClick="$('#config-tab').tab('show')" href="#config">kein Ort für zu Hause registriert</a> hast.
+                        </div>
+                        <table class="table table-condensed">
+                            <thead>
+                            <tr>
+                                <th>Datum</th><th>Von</th><th>bis</th><th>Pause</th><th>Dauer</th><th>Ort</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for t in timings %}
+                            <tr>
+                                <td>{{ t['start'].date() }}</td>
+                                <td>{{ t['start'].time() }}</td>
+                                <td>{{ t['end'].time() }}</td>
+                                <td>{{ t['pause'].seconds<60 and "-" or t['pause'] }}</td>
+                                <td>{{ t['end']-t['start']-t['pause'] }}</td>
+                                <td>{{ t['name'] }}</td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        {% else %}
+                        <h2>Keine Zeiten gespeichert.</h2>
+                        {% endif %}
+                    </div>
+
+                    <div id="form" class="tab-pane fade">
+                        <form id="debugForm" method="post" class="tab-pane fade in active" >
+                            <div class="form-group">
+                                <label for="Fname">Ort:</label>
+                                <input id="Fname" name="name" placeHolder="Enter location name">
+                            </div>
+                            <div class="form-group">
+                                <label for="f_entry">Eintrag</label>
+                                <select name="entry" id="f_entry">
+                                    <option value="0">Ankommen</option>
+                                    <option value="1">Abfahren</option>
+                                    <option value="2">1 Stunde buchen</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="f_date">Datum & Uhrzeit</label>
+                                <input type="datetime-local" id="f_date" name="date" placeHolder="date & time">
+                                <span class="btn btn-default"
+                                      onClick="$('#f_date').val(new Date().toISOString().slice(0,16))">&#9201;
+                                </span>
+                                <span class="btn btn-default"
+                                      onClick="$('#f_date').val(new Date(new Date($('#f_date').val()).getTime()+3600000).toISOString().slice(0,16))">+1h
+                                </span>
+                            </div>
+                            <div class="form-group">
+                                <label for="Flat">Position:lat</label>
+                                <input id="Flat" name="latitude" placeHolder="latitude">
+                            </div>
+                            <div class="form-group">
+                                <label for="f_long">Position:long</label>
+                                <input id="f_long" name="longitude" placeHolder="longitude">
+                            </div>
+                            <div class="form-group">
+                                <label for="f_device">Gerät</label>
+                                <input id="f_device" name="device" placeHolder="name of device"><br/>
+                            </div>
+                            <input type="submit" value="save it">
+                        </form>
+                    </div>
+                    <div id="config" class="tab-pane fade">
+                        {% if apikey %}
+                        <h2>API-URL</h2>
+                        Trage folgende URL in deiner APP ein. Diese URL ist nicht geschützt, da wenige Apps eine
+                        Authentifikation unterstützen. Du kannst aber später unbekannte Zugriffe sperren/löschen.
+                        <div>
+                            <pre>http://{{hostname}}/api/{{apikey}}</pre>
+                        </div>
+                        {% endif %}
+
+                        {% include "dashboard_devices.inc" %}
+
+                        {% include "dashboard_locations.inc" %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <table class="table table-condensed">
+                    <thead>
+                    <tr><th colspan="5">Alle geofancy daten</th></tr>
+                    <tr><th>Ort</th><th>Datum</th><th>Eintrag</th><th>Position</th><!--th>Gerät</th--></tr>
+                    </thead>
+                    <tbody>
+                    {% for geo in geofency %}
+                    <tr>
+                        <td>{{ geo.name }}</td>
+                        <td>{{ geo.event }}</td>
+                        <td>{{ geo.entry==0 and 'Angekommen' or 'Abgefahren' }}</td>
+                        <td>{{ geo.pos.lat }} / {{ geo.pos.lon }}</td>
+                        <!--td>{{ geo.device }}</td-->
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5">
+                        <h1>Keine Daten</h1>
+                        Bitte integriere deine Geofancy App mit dem Webservice oder trage testweise Daten ein.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+
+            </div>
+        </div>
+    </body>
+</html>

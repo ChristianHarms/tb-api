@@ -1,20 +1,29 @@
+#
 
--- local development
+private project about getting work time automaticly
 
+## local development
+
+```
 ../google-cloud-sdk/bin/dev_appserver.py .
-
--->
+```
 
 Local Start: http://localhost:8000
 
 local console: http://localhost:8080
 
-- global publish
+## global publish
 
-PUSH: ../gcloud/google-cloud-sdk/bin/gcloud app deploy
+```
+../gcloud/google-cloud-sdk/bin/gcloud app deploy
+```
 
 Global Console: https://console.cloud.google.com/
 
-Aber: Datenstrukturen / Indexe werden nicht automatisch angelegt:
+If you modify some data structures you have to create the indexes:
 
-gcloud preview datastore create-indexes
+```
+gcloud preview datastore create-indexes index.yaml
+```
+
+and wait for rebuilding the index on google console: appengine->datastore->index

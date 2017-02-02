@@ -2,14 +2,14 @@
 <h2>Gerätekonfiguration</h2>
 <table class="table table-condensed table-striped  table-hover">
     <thead class="table-striped ">
-    <tr><th>Geräte-ID</th><th>Name</th><th>Blockiert?</th><th>Löschen</th></tr>
+    <tr><th width="35%">Geräte-ID</th><th width="35%">Name</th><th width="15%">Blockiert?</th><th width="15%">Löschen!</th></tr>
     </thead>
     <tbody>
-    <form action="/config" method="POST">
+    <form action="/configdev" method="POST">
         {% for device in devices %}
         <tr><td>{{ device.device_id }}</td>
             <td><input id="{{ device.device_id }}" name="name_{{ device.device_id }}"
-                       placeHolder="Name" size=10 value="{{device.name}}"></td>
+                       placeHolder="Name" size=15 value="{{device.name}}"></td>
             <td class="text-center"><input type="checkbox" {{device.blocked and 'checked'}}
                 name="block_{{ device.device_id }}"></td>
             <td class="text-center"><input type="checkbox"

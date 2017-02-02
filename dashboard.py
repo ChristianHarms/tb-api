@@ -4,8 +4,8 @@ import json, logging, os, urllib
 from datetime import datetime, timedelta
 from google.appengine.api import users
 from google.appengine.ext import ndb
-from baserequest import AuthorizedRequest, HelperGeofencyRequest, JINJA
-from data import Booking, Geofancy, MyDevice, ApiKey, Location
+from baserequest import AuthorizedRequest, HelperGeofancyRequest, JINJA
+from data import Booking, Geofency, MyDevice, ApiKey, Location
 
 _IN = 0
 _OUT = 1
@@ -35,10 +35,10 @@ CONFIG = [
 ]
 
 
-class DashBoard(AuthorizedRequest, HelperGeofencyRequest):
+class DashBoard(AuthorizedRequest, HelperGeofancyRequest):
     def get(self):
         # read all logged geo event
-        geofancy = Geofancy.getSortedByTime(self.user.user_id())
+        geofancy = Geofency.getSortedByTime(self.user.user_id())
         timings = self.calculateTimes(geofancy)
 
         # read all registered devices
@@ -70,6 +70,7 @@ class DashBoard(AuthorizedRequest, HelperGeofencyRequest):
             action = None
             if last:
                 logging.info('%s (%s) -> %s (%s)' % (last.entry, last.name, item.entry, item.name))
+            #parse rules
             for cfg in CONFIG:
                 if last:
                     if last.entry == cfg['EVENT_LAST'] and \
@@ -84,6 +85,7 @@ class DashBoard(AuthorizedRequest, HelperGeofencyRequest):
                             action = cfg['ACTION']
                 elif item.entry == cfg['EVENT_NEXT']:
                     action = cfg['ACTION']
+
             # action ausführen.
             logging.info('Action: %s' % action)
             if action == 'ADD':
@@ -109,11 +111,16 @@ class DashBoard(AuthorizedRequest, HelperGeofencyRequest):
             # Startzeit abrunden
             old_start = item['start']
             item['start'] -= timedelta(seconds=(old_start.minute % 15) * 60 + old_start.second)
+
             # Endzeit aufrunden
             old_end = item['end']
             item['end'] += timedelta(seconds=(14 - old_end.minute % 15) * 60 + (60 - old_end.second))
+
             # Pause abrunden - Pausen unter 15 min gelten nicht als abzugsfähige Arbeitszeit.
             item['pause'] = timedelta(seconds=(item['pause'].total_seconds() // (15 * 60)) * 15 * 60)
+
+            #effektive Arbeitszeit
+            item['booking'] = item['end'] - item['start'] - item['pause']
         return items
 
     # calculateTimes
@@ -129,7 +136,7 @@ class DashBoard(AuthorizedRequest, HelperGeofencyRequest):
 
 # DashBoard
 
-class DashBoardConfig(AuthorizedRequest):
+class DashBoardDevices(AuthorizedRequest):
     def post(self):
         devices = MyDevice.getAllDevices(self.user.user_id())
 
@@ -152,12 +159,36 @@ class DashBoardConfig(AuthorizedRequest):
                                 dev.blocked = self.request.get('block_' + device_id) == 'on'
                             dev.put()
                     if cmd == 'delete':
-                        Geofancy.deleteByDeviceId(self.user.user_id(), dev.device_id)
+                        Geofency.deleteByDeviceId(self.user.user_id(), dev.device_id)
                         if dev.name:
                             dev.key.delete()
                         # Should I hide it from the list?
                         dev.device_id = '_'
 
         self.redirect('/dashboard#config')
+    # post
+# DashBoardDevices
+
+class DashBoardLocations(AuthorizedRequest):
+    def post(self):
+        locations = Location.getAllLocations(self.user.user_id())
+
+        logging.info(self.request.POST)
+        for name, value in self.request.POST.iteritems():
+            cmd, loc_name = name.split("_", 1)
+
+            logging.info(u'cmd: %s, loc_name: %s, value: %s' % (cmd, loc_name, value))
+            for loc in locations:
+                if loc.name == loc_name:
+                    if cmd == 'delete':
+                        loc.key.delete()
+                        # Should I hide it from the list?
+                        loc.name = '_'
+                    if cmd == 'name':
+                        loc.home = self.request.get('home_' + loc_name) == 'on'
+                        loc.work = self.request.get('work_' + loc_name) == 'on'
+                        loc.put()
+
+        self.redirect('/dashboard#config')
         # post
-        # DashBoardConfig
+# DashBoardConfig

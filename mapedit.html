@@ -1,0 +1,43 @@
+<html>
+<head>
+    {% include "basehead.inc" %}
+</head>
+<body>
+    <div class="page-header">
+        <div class="container">
+            <h1>Orte übernehmen</h1>
+            Hallo {{ username }} - hier werden alle deinen Orte gespeichert.
+        </div>
+    </div>
+
+    <div class="row container">
+        <script>
+            var MAPDATA = { locations: {{ locations|safe }},
+                            geofancy: {{ geofancy|safe}} };
+        </script>
+        <div class="col-md-6" id="map" style="min-height:50%">
+        </div>
+
+        <div class="col-md-6"  style="min-height:50%">
+            <h2>Orte bestimmen</h2>
+            {% include "dashboard_locations.inc" %}
+            {% if locations %}
+            <div class="info" role="info">
+                {% if geofency %} Du kannst Willst du weitere Orte aus den geofancy Daten <a href="/mapedit">übernehmen</a>?
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="alert alert-danger" role="alert">
+                Es sind keine Orte gespeichert.
+                {% if geofency %} Einfach auf der Karte einen roten Marker auswählen und als Ort speichern.
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="static/mapedit.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBkVwQMQTk740AYmNVm9E5bLABfLgA_guk&callback=initMap"
+            async defer></script>
+</body>
+</html>

@@ -1,7 +1,8 @@
 import webapp2, logging
 from google.appengine.api import users
-from dashboard import DashBoard, DashBoardConfig
-from api import ApiGeofency
+from dashboard import DashBoard, DashBoardDevices, DashBoardLocations
+from mapedit import MapEdit
+from api import ApiGeofancy
 
 class MainPage(webapp2.RequestHandler):
     'HTML-view of all timeBooking'
@@ -22,6 +23,8 @@ class MainPage(webapp2.RequestHandler):
 app = webapp2.WSGIApplication([
     ('/', MainPage),
     ('/dashboard', DashBoard),
-    ('/config', DashBoardConfig),
-    ('/api/(\d*)', ApiGeofency),
+    ('/mapedit', MapEdit),
+    ('/configdev', DashBoardDevices),
+    ('/configloc', DashBoardLocations),
+    ('/api/(\d*)', ApiGeofancy),
 ], debug=True)

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from google.appengine.ext import ndb
-import logging, random
+import logging, random, json
 
 API_KEY_MIN=10000
 API_KEY_MAX=99999
@@ -42,7 +42,7 @@ class ApiKey(ndb.Model):
     #getApiKey
 
     @classmethod
-    def getOwner(cls, api_key):
+    def getOwnerId(cls, api_key):
         '''
         Return the userId for the api_key
         :param api_key: the API-KEY id
@@ -58,9 +58,9 @@ class Location(ndb.Model):
     '''Registrierte Orte
     '''
     user_id = ndb.StringProperty()
+    name = ndb.StringProperty()
     pos = ndb.GeoPtProperty()
     radius = ndb.FloatProperty()
-    name = ndb.StringProperty()
     home = ndb.BooleanProperty()
     work = ndb.BooleanProperty()
 
@@ -74,6 +74,17 @@ class Location(ndb.Model):
         locations = cls.query(Location.user_id == str(user_id)).fetch()
         return locations
     #getAllLocations
+
+    def to_dict(self):
+        '''Overwrite the serialization to not expose the user_id (and some formatting).'''
+        ret = { "name": self.name.encode('ascii', 'xmlcharrefreplace'),
+                "pos": { "long": self.pos.lon, "lat": self.pos.lat},
+                "radius": self.radius,
+                "home": self.home and 1 or 0, #python 'True' is not JSON 'true'
+                "work": self.work and 1 or 0
+                }
+        return ret
+        #to_dict
 #Location
 
 class MyDevice(ndb.Model):
@@ -89,7 +100,7 @@ class MyDevice(ndb.Model):
     def getAllDevices(cls, user_id, deviceIdFromList=set()):
         devices = cls.query(MyDevice.user_id == str(user_id)).fetch()
 
-        used_devices = Geofancy.query(projection=['device'], distinct=True).fetch()
+        used_devices = Geofency.query(projection=['device'], distinct=True).fetch()
 
         other_devices = list(set([dev.device for dev in used_devices]) -
                              set([dev.device_id for dev in devices]))
@@ -110,7 +121,7 @@ class MyDevice(ndb.Model):
     #getAllDevices
 #MyDevices
 
-class Geofancy(ndb.Model):
+class Geofency(ndb.Model):
     user_id = ndb.StringProperty()
     name = ndb.StringProperty()
     entry = ndb.IntegerProperty()
@@ -118,9 +129,20 @@ class Geofancy(ndb.Model):
     pos = ndb.GeoPtProperty()
     device = ndb.StringProperty()
 
+    def to_dict(self):
+        '''Overwrite the serialization to not expose the user_id.'''
+        ret = { "name": self.name.encode('ascii', 'xmlcharrefreplace'),
+                "entry": self.entry,
+                "event": self.event.isoformat(),
+                "pos": { "long": self.pos.lon, "lat": self.pos.lat},
+                "device": self.device.encode('ascii', 'xmlcharrefreplace')
+                }
+        return ret
+    #to_dict
+
     @classmethod
     def getSortedByTime(cls, user_id, max=100):
-        all_geo = cls.query(Geofancy.user_id == str(user_id)).order(cls.event).fetch(max)
+        all_geo = cls.query(Geofency.user_id == str(user_id)).order(cls.event).fetch(max)
 
         device_dict = dict([dev.device_id, dev.name] for dev in MyDevice.getAllDevices(user_id))
         for geo in all_geo:
@@ -132,7 +154,7 @@ class Geofancy(ndb.Model):
     @classmethod
     def deleteByDeviceId(cls, user_id, device_id):
         qo = ndb.QueryOptions(keys_only = True)
-        query = cls.query(Geofancy.user_id == str(user_id), Geofancy.device==device_id)
+        query = cls.query(Geofency.user_id == str(user_id), Geofency.device == device_id)
         keys = query.fetch(100, options = qo)
         logging.info('Found %d items to delete' % len(keys))
         logging.info(keys)
@@ -141,13 +163,13 @@ class Geofancy(ndb.Model):
 
     @classmethod
     def getAllDevices(cls, user_id, max=100):
-        return cls.query(Geofancy.user_id == str(user_id), projection=['device']).fetch(max)
+        return cls.query(Geofency.user_id == str(user_id), projection=['device']).fetch(max)
     #getAllDevices
 
     @classmethod
     def getSortedByLocation(cls, user_id):
         result = []
-        for log in cls.query(Geofancy.user_id == str(user_id)).order(cls.event):
+        for log in cls.query(Geofency.user_id == str(user_id)).order(cls.event):
             result.append(log)
         return result
 
